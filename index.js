@@ -1,18 +1,19 @@
 import Fastify from 'fastify';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-
+import os from 'node:os';
 const fastify = Fastify();
 const execAsync = promisify(exec);
 
+
+var platform = os.platform();
+
 fastify.get('/', async (request, reply) => {
   try {
-    console.log('Received request to play MP3');
-    // Change `afplay` to whatever works on your OS:
-    // - macOS: afplay
-    // - Linux: mpg123 or aplay
-    // - Windows: powershell command or external player
-    await execAsync(`afplay ./buzzer.mp3`);
+    console.log('Received request.');
+
+    let command = platform === 'darwin' ? 'afplay' : 'aplay';
+    await execAsync(`${command} ./buzzer.mp3`);
     reply.send({ status: 'ok', message: 'MP3 played.' });
   } catch (err) {
     console.error(err);
@@ -22,6 +23,7 @@ fastify.get('/', async (request, reply) => {
 
 const main = async () => {
   try {
+    console.log(os.platform());
     await fastify.listen({ port: 3030, host: '0.0.0.0' });
     console.log('Server listening on http://localhost:3000');
   } catch (err) {
