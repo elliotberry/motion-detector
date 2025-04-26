@@ -4,7 +4,19 @@ import { promisify } from 'util';
 import os from 'node:os';
 import crypto from 'node:crypto';
 
-const fastify = Fastify();
+const fastify = Fastify({
+  logger: {
+    transport: {
+      target: 'pino-pretty',
+      options: {
+        colorize: true,
+        translateTime: 'yyyy-mm-dd hh:MM:ss TT Z',
+        ignore: 'pid,hostname',
+      },
+    },
+    timestamp: () => `,"time":"${new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })}"`,
+  },
+});
 const execAsync = promisify(exec);
 const platform = os.platform();
 
@@ -16,16 +28,17 @@ const pickSound = (ip) => {
 
 fastify.get('/', async (request, reply) => {
   try {
-    console.log('Received request from', request.ip);
+    request.log.info('Received request from', request.ip);
 
     const command = platform === 'darwin' ? 'afplay -v 100' : 'aplay';
     const soundFile = pickSound(request.ip);
 
     await execAsync(`${command} ./` + soundFile);
-    reply.send({ status: 'ok', message: `Played ${soundFile}` });
+    request.log.info('Played sound.');
+    reply.send({ status: 'ok' });
   } catch (err) {
-    console.error(err);
-    reply.status(500).send({ error: 'Failed to play MP3' });
+    request.log.error(err);
+    reply.status(500).send({ error: 'Failure' });
   }
 });
 
